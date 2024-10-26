@@ -2,7 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using WedApi.Data;
 using WedApi.Dtos.Stock;
+using WedApi.Helpers;
+using WedApi.Interfaces;
 using WedApi.Mappers;
+using WedApi.Repository;
 
 namespace WedApi.Controllers
 {
@@ -10,26 +13,38 @@ namespace WedApi.Controllers
     [ApiController]
     public class StockController : ControllerBase
     {
+        private readonly IStockRepository _stockRepository;
         private readonly ApplicationDBContext _context;
-        public StockController(ApplicationDBContext context)
+        public StockController(IStockRepository stockRepository, ApplicationDBContext context)
         {
+            _stockRepository = stockRepository;
             _context = context;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
         {
-            var stocksTask = await _context.Stocks.ToListAsync();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var stocksTask = await _stockRepository.GetAllAsync(query);
                 
-            var stocks = stocksTask.Select(s => s.ToStockDto());
+            var stocks = stocksTask.Items.Select(s => s.ToStockDto());
             
-            return Ok(stocks);
+            return Ok(new
+            {
+                Data = stocks,
+                Pagination = stocksTask.Pagination,
+            });
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id) 
         {
-            var stock = await _context.Stocks.FindAsync(id);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var stock = await _stockRepository.GetByIdAsync(id);
 
             if(stock == null)
                 return NotFound();
@@ -40,44 +55,41 @@ namespace WedApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateStockRequestDto stockDto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var stockModel = stockDto.ToStockFromCreateDto();
-            await _context.Stocks.AddAsync(stockModel);    
-            await _context.SaveChangesAsync();
+            await _stockRepository.CreateAsync(stockModel);
             return CreatedAtAction(nameof(GetById), new {id = stockModel.Id}, stockModel.ToStockDto());
         }
 
         [HttpPut]
-        [Route("{id}")]
+        [Route("{id:int}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateStockRequestDto updateDto)
         {
-            var stockModel = await _context.Stocks.FirstOrDefaultAsync(x => x.Id == id);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var stockModel = await _stockRepository.UpdateAsync(id, updateDto);
 
             if(stockModel == null)
                 return NotFound();
-
-            stockModel.Symbol = updateDto.Symbol;
-            stockModel.CompanyName = updateDto.CompanyName;
-            stockModel.Purchase = updateDto.Purchase;
-            stockModel.LastDiv = updateDto.LastDiv;
-            stockModel.Industry = updateDto.Industry;
-            stockModel.MarketCap = updateDto.MarketCap;
-
-            await _context.SaveChangesAsync();
-
+            
             return Ok(stockModel.ToStockDto());
         }
 
         [HttpDelete]
-        [Route("{id}")]
+        [Route("{id:int}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            var stockModel = await _context.Stocks.FirstOrDefaultAsync(x => x.Id == id);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var stockModel = await _stockRepository.DeleteAsync(id);
 
             if(stockModel == null)
                 return NotFound();
 
-            _context.Stocks.Remove(stockModel);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
     }
