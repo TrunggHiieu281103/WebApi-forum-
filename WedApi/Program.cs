@@ -6,6 +6,7 @@ using WedApi.Data;
 using WedApi.Interfaces;
 using WedApi.Models;
 using WedApi.Repository;
+using WedApi.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +65,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 var app = builder.Build();
 
