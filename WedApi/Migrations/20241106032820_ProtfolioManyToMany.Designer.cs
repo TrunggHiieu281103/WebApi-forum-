@@ -12,8 +12,8 @@ using WedApi.Data;
 namespace WedApi.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    [Migration("20241031100924_SeedRole")]
-    partial class SeedRole
+    [Migration("20241106032820_ProtfolioManyToMany")]
+    partial class ProtfolioManyToMany
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -54,13 +54,13 @@ namespace WedApi.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "6e639603-0e19-44dc-8199-111b8c04d967",
+                            Id = "c889e7a9-8b1e-4ace-b5c1-7b2335460407",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "7a286773-74d9-4897-8cdb-700215bcffec",
+                            Id = "62968356-67fa-4616-93ca-5a66491ebe28",
                             Name = "User",
                             NormalizedName = "USER"
                         });
@@ -266,6 +266,21 @@ namespace WedApi.Migrations
                     b.ToTable("Comments");
                 });
 
+            modelBuilder.Entity("WedApi.Models.Portfolio", b =>
+                {
+                    b.Property<string>("AppUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("StockId")
+                        .HasColumnType("int");
+
+                    b.HasKey("AppUserId", "StockId");
+
+                    b.HasIndex("StockId");
+
+                    b.ToTable("Portfolios");
+                });
+
             modelBuilder.Entity("WedApi.Models.Stock", b =>
                 {
                     b.Property<int>("Id")
@@ -360,9 +375,35 @@ namespace WedApi.Migrations
                     b.Navigation("Stock");
                 });
 
+            modelBuilder.Entity("WedApi.Models.Portfolio", b =>
+                {
+                    b.HasOne("WedApi.Models.AppUser", "AppUser")
+                        .WithMany("Portfolios")
+                        .HasForeignKey("AppUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WedApi.Models.Stock", "Stock")
+                        .WithMany("Portfolios")
+                        .HasForeignKey("StockId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AppUser");
+
+                    b.Navigation("Stock");
+                });
+
+            modelBuilder.Entity("WedApi.Models.AppUser", b =>
+                {
+                    b.Navigation("Portfolios");
+                });
+
             modelBuilder.Entity("WedApi.Models.Stock", b =>
                 {
                     b.Navigation("Comments");
+
+                    b.Navigation("Portfolios");
                 });
 #pragma warning restore 612, 618
         }
